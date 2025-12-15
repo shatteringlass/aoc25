@@ -1,7 +1,40 @@
+from itertools import chain, combinations, pairwise
+
+
 DAY = 9
 PARTS = (1, 2)
 INPUT_FOLDER = "inputs"
-TEST_SMALL = True
+TEST_SMALL = False
+
+class Point:
+    x: int
+    y: int
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    
+class Shape:
+
+    x_min: int
+    x_max: int
+    y_min: int
+    y_max: int
+
+    def __init__(self, p1: Point, p2: Point):
+        self.x_min, self.x_max = sorted((p1.x,p2.x))
+        self.y_min, self.y_max = sorted((p1.y,p2.y))
+
+    
+    def is_overlapping(self, other: "Shape"):
+        return not(
+            (self.x_max <= other.x_min or self.y_max <= other.y_min) # ends before the other starts
+            or 
+            (self.x_min >= other.x_max or self.y_min >= other.y_max) # starts after the other ends
+    )
+
+    def size(self):
+        return (self.x_max - self.x_min + 1) * (self.y_max - self.y_min + 1)
 
 
 def parse_input(small=TEST_SMALL):
@@ -26,30 +59,13 @@ def part_one(lines):
 
     return result
 
-
 def part_two(lines):
-    result = 0
+    tiles = [Point(*(int(coord) for coord in line.strip().split(","))) for line in lines]
+    edges = [Shape(a,b) for a,b in chain(pairwise(tiles), [(tiles[-1], tiles[0])])]
+    boxes = [Shape(a,b) for a,b in combinations(tiles, 2)]
+    good = [box for box in boxes if not any(box.is_overlapping(edge) for edge in edges)]
 
-    red_tiles = []
-    rectangles = []
-
-    for line in lines:
-        y, x = line.split(",")
-        y, x = int(y), int(x)
-        red_tiles.append((y, x))
-
-    for y0, x0 in red_tiles:
-        for y1, x1 in red_tiles[::-1]:
-            min_x, max_x = min(x0, x1), max(x0, x1)
-            min_y, max_y = min(y0, y1), max(y0, y1)
-            for x in range(min_x, max_x + 1):
-                for y in range(min_y, max_y + 1):
-                    if (y, x) not in red_tiles:
-                        break
-                    else:
-                        continue
-
-    return result
+    return max(box.size() for box in good)
 
 
 def main():
